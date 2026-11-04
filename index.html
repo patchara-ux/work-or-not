@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WORK or NOT? ภารกิจพิชิตนักวิเคราะห์งาน</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b1f4d;--navy2:#12307a;--blue:#2e9bff;--sky:#bfe3ff;--yel:#ffd23f;--ok:#2ecc71;--bad:#ff5a5f}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:'Kanit','Sarabun',sans-serif;color:#fff;background:radial-gradient(circle at 20% 0,var(--navy2),var(--navy) 60%);font-size:18px}
+#app{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:34px;line-height:1.1;margin:8px 0;font-weight:800}
+h1 b{color:var(--yel)}h2{margin:6px 0}
+.card{background:rgba(255,255,255,.08);border:2px solid rgba(191,227,255,.25);border-radius:20px;padding:16px;margin:12px 0}
+.light{background:#fff;color:var(--navy)}
+.btn{display:block;width:100%;font:inherit;font-weight:600;font-size:20px;border:0;border-radius:16px;padding:15px;margin:10px 0;cursor:pointer;background:var(--yel);color:var(--navy);box-shadow:0 5px 0 #c99a00}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #c99a00}
+.btn.alt{background:var(--blue);color:#fff;box-shadow:0 5px 0 #1a6cb8}
+.btn.ghost{background:transparent;color:var(--sky);border:2px solid var(--sky);box-shadow:none}
+input{width:100%;font:inherit;font-size:20px;padding:13px;border-radius:14px;border:3px solid var(--sky);margin:6px 0;color:var(--navy)}
+.top{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:16px}
+.chip{background:var(--navy2);border:2px solid var(--blue);border-radius:99px;padding:4px 12px}
+.bar{height:14px;background:rgba(255,255,255,.2);border-radius:9px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--yel));transition:width .4s}
+.tbar i{background:var(--yel)}.tbar.low i{background:var(--bad)}
+.lvl{color:var(--yel);font-weight:800}
+.q{font-size:20px;font-weight:600;margin:8px 0}
+svg{width:100%;height:auto;background:linear-gradient(#d9efff,#fff);border-radius:14px;display:block}
+.ch{display:block;width:100%;text-align:left;font:inherit;font-size:18px;padding:14px;margin:9px 0;border-radius:14px;border:3px solid var(--sky);background:#fff;color:var(--navy);cursor:pointer}
+.ch:disabled{cursor:default}.ch.ok{background:#d6f8e2;border-color:var(--ok)}.ch.no{background:#ffe0e1;border-color:var(--bad)}
+.fb{border-radius:14px;padding:12px;margin-top:10px;font-size:17px}
+.fb.ok{background:#d6f8e2;color:#0a5a2b}.fb.no{background:#ffe0e1;color:#8a1b20}
+.big{font-size:56px;font-weight:800;color:var(--yel);text-align:center;line-height:1}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center}
+.grid div{background:var(--navy2);border-radius:14px;padding:10px}.grid b{display:block;font-size:26px;color:var(--yel)}
+table{width:100%;border-collapse:collapse;font-size:15px}th,td{padding:7px 5px;text-align:left;border-bottom:1px solid #cfe3f7}
+.me{background:#fff3bf}.note{font-size:15px;background:#fff3bf;color:#5c4400;border-radius:12px;padding:10px;margin:8px 0}
+pre{background:#001030;color:#bfe3ff;padding:10px;border-radius:10px;font-size:12px;white-space:pre-wrap;overflow-x:auto}
+.tw{overflow-x:auto}
+@media(min-width:800px){#app{max-width:720px}}
+</style></head><body><div id="app"></div>
+<script>
+/* ===== ตั้งค่า Supabase (ดูวิธีในหน้า "ตั้งค่า" ของครู) ===== */
+const SUPABASE_URL="";      // เช่น https://xxxx.supabase.co
+const SUPABASE_KEY="";      // anon public key
+const TEACHER_PIN="1234";   // เปลี่ยนก่อนเผยแพร่
+/* ======================================================== */
+const DB=!!(SUPABASE_URL&&SUPABASE_KEY),N_TIME=45;
+const H={apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/json"};
+const $=s=>document.querySelector(s),app=$("#app");
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LV=["ด่าน 1: งานหรือไม่?","ด่าน 2: แรงกับทิศทาง","ด่าน 3: คำนวณงาน","ด่าน 4: กำลัง","ด่าน 5: ภารกิจสุดท้าย"];
+/* [ด่าน, โจทย์, ภาพ[คน,วัตถุ,ทิศแรง,ทิศการกระจัด], ตัวเลือก, ข้อถูก(index), เฉลย] */
+const Q=[
+[0,"น้องฟ้าผลักกำแพงอิฐสุดแรงจนเหนื่อย แต่กำแพงไม่ขยับเลย เกิดงานทางฟิสิกส์หรือไม่?",["🧑","🧱","r",null],["เกิดงาน เพราะออกแรงและเหนื่อยมาก","ไม่เกิดงาน เพราะกำแพงไม่เคลื่อนที่ (s = 0)","เกิดงาน เพราะกำแพงมีมวลมาก"],1,"งานทางฟิสิกส์ต้องมีทั้งแรงและการกระจัดตามทิศของแรง กำแพงไม่ขยับ s = 0 จึงได้ W = F × 0 = 0 แม้จะเหนื่อยก็ไม่ใช่งานทางฟิสิกส์"],
+[0,"พี่ต้นยกกล่องจากพื้นขึ้นไปวางบนชั้นสูง 1 เมตร เกิดงานทางฟิสิกส์หรือไม่?",["🧑","📦","u","u"],["ไม่เกิดงาน เพราะกล่องไม่หนัก","เกิดงาน เพราะแรงยกขึ้น และกล่องเคลื่อนที่ขึ้นด้วย","ไม่เกิดงาน เพราะกล่องอยู่นิ่งตอนท้าย"],1,"แรงยกชี้ขึ้น กล่องเคลื่อนที่ขึ้น แรงกับการกระจัดอยู่ในทิศเดียวกัน จึงเกิดงาน"],
+[0,"น้องมิ้นท์ถือกระเป๋าเดินไปตามพื้นราบ งานที่เกิดจากแรงที่มือยกกระเป๋าเป็นอย่างไร?",["🚶","👜","u","r"],["เกิดงาน เพราะกระเป๋าเคลื่อนที่","ไม่เกิดงาน เพราะแรงยกชี้ขึ้นแต่กระเป๋าเคลื่อนที่ไปด้านข้าง","เกิดงาน เพราะน้องมิ้นท์เหนื่อย"],1,"แรงยกชี้ขึ้นตั้งฉากกับการกระจัดในแนวราบ แรงนี้จึงไม่ทำงาน แม้กระเป๋าจะเคลื่อนที่ไปก็ตาม"],
+[0,"น้องบอลผลักกล่องไปบนพื้นจนกล่องเลื่อนไปข้างหน้า 3 เมตร เกิดงานหรือไม่?",["🧑","📦","r","r"],["เกิดงาน เพราะมีแรงผลักและกล่องเคลื่อนที่ไปทางเดียวกับแรง","ไม่เกิดงาน เพราะกล่องอยู่บนพื้น","ไม่เกิดงาน เพราะผลักในแนวราบ"],0,"แรงผลักและการกระจัดชี้ไปทางขวาเหมือนกัน จึงเกิดงาน W = F × s"],
+[1,"นักยกน้ำหนักชูบาร์เบลไว้เหนือศีรษะนิ่ง ๆ นาน 10 วินาที แรงที่เขาออกทำงานหรือไม่?",["🏋️","🏋️","u",null],["ทำงาน เพราะแรงยกชี้ขึ้นตลอดเวลา","ไม่ทำงาน เพราะบาร์เบลไม่เคลื่อนที่ ไม่มีการกระจัด","ทำงาน เพราะบาร์เบลหนักมาก"],1,"มีแรงแต่ไม่มีการกระจัด (s = 0) งานทางฟิสิกส์จึงเป็นศูนย์"],
+[1,"ลิฟต์ถูกสายเคเบิลดึงขึ้นไปชั้นบน ทิศของแรงดึงและการกระจัดเป็นอย่างไร และเกิดงานหรือไม่?",["🧑","🛗","u","u"],["ทิศเดียวกัน (ขึ้นทั้งคู่) เกิดงาน","ตั้งฉากกัน ไม่เกิดงาน","สวนทางกัน ไม่เกิดงาน"],0,"แรงดึงชี้ขึ้น ลิฟต์เคลื่อนที่ขึ้น ทิศเดียวกันจึงเกิดงาน"],
+[1,"น้องเก่งลากกล่องไปทางซ้ายด้วยแรงดึงที่ชี้ไปทางซ้าย กล่องเลื่อนไปทางซ้ายเช่นกัน เกิดงานหรือไม่?",["🧑","📦","l","l"],["ไม่เกิดงาน เพราะลากไปทางซ้าย","เกิดงาน เพราะแรงและการกระจัดอยู่ทิศเดียวกัน (ทางซ้ายทั้งคู่)","ไม่เกิดงาน เพราะต้องผลักเท่านั้น"],1,"ทิศไม่ว่าจะซ้ายหรือขวา ขอเพียงแรงกับการกระจัดชี้ไปทางเดียวกัน ก็เกิดงาน"],
+[1,"น้องเมฆใช้แรงยกกระเป๋าค้างไว้ที่ระดับเอว แล้วเดินไปตามทางราบ ข้อใดวิเคราะห์ถูก?",["🚶","🎒","u","r"],["แรงยกชี้ขึ้น การกระจัดชี้ไปข้างหน้า ตั้งฉากกัน จึงไม่เกิดงานจากแรงยก","แรงยกกับการกระจัดทิศเดียวกัน จึงเกิดงาน","เกิดงานเพราะเดินไกล"],0,"ตรวจดูทิศ: แรงยก ↑ การกระจัด → ตั้งฉากกัน งานจากแรงยกเป็นศูนย์"],
+[2,"ออกแรงผลักกล่อง 20 นิวตัน ให้เคลื่อนที่ไป 5 เมตรในทิศของแรง ทำงานเท่าใด?",["🧑","📦","r","r"],["4 จูล","25 จูล","100 จูล","15 จูล"],2,"W = F × s = 20 × 5 = 100 จูล"],
+[2,"ยกกล่องหนัก 40 นิวตันขึ้นสูง 3 เมตร ทำงานเท่าใด?",["🧑","📦","u","u"],["120 จูล","43 จูล","13 จูล","37 จูล"],0,"แรงยก = น้ำหนัก = 40 N, W = F × s = 40 × 3 = 120 จูล"],
+[2,"น้องมายผลักตู้ด้วยแรง 150 นิวตัน แต่ตู้ไม่ขยับ งานที่ทำได้เท่าใด?",["🧑","🗄️","r",null],["150 จูล","15 จูล","0 จูล","1,500 จูล"],2,"ตู้ไม่ขยับ s = 0 จึงได้ W = 150 × 0 = 0 จูล"],
+[2,"ทำงาน 600 จูล โดยเคลื่อนกล่องไป 12 เมตรในทิศของแรง แรงที่ใช้เท่ากับเท่าใด?",["🧑","📦","r","r"],["50 นิวตัน","72 นิวตัน","7,200 นิวตัน","588 นิวตัน"],0,"จาก W = F × s จึง F = W ÷ s = 600 ÷ 12 = 50 นิวตัน"],
+[3,"ทำงาน 500 จูล ใช้เวลา 10 วินาที กำลังเท่ากับเท่าใด?",["🧑","📦","r","r"],["5,000 วัตต์","510 วัตต์","50 วัตต์","0.02 วัตต์"],2,"P = W ÷ t = 500 ÷ 10 = 50 วัตต์"],
+[3,"ยกกล่อง 100 นิวตันขึ้นสูง 3 เมตร ใช้เวลา 6 วินาที กำลังเท่าใด?",["🧑","📦","u","u"],["50 วัตต์","300 วัตต์","18 วัตต์","600 วัตต์"],0,"งาน W = 100 × 3 = 300 จูล แล้ว P = 300 ÷ 6 = 50 วัตต์"],
+[3,"เครื่อง A ทำงาน 600 จูลใน 3 วินาที เครื่อง B ทำงาน 400 จูลใน 1 วินาที เครื่องใดมีกำลังมากกว่า?",["🤖","⚙️","r","r"],["A เพราะทำงานมากกว่า","B เพราะ 400 W มากกว่า A ที่ 200 W","เท่ากัน"],1,"P(A) = 600 ÷ 3 = 200 W, P(B) = 400 ÷ 1 = 400 W กำลังดูที่งานต่อเวลา ไม่ใช่งานรวมอย่างเดียว"],
+[3,"เครื่องยนต์มีกำลัง 40 วัตต์ ทำงานนาน 15 วินาที ทำงานได้กี่จูล?",["🤖","⚙️","r","r"],["600 จูล","55 จูล","2.7 จูล","25 จูล"],0,"จาก P = W ÷ t จึง W = P × t = 40 × 15 = 600 จูล"],
+[4,"น้องกล้าผลักตู้ด้วยแรง 200 นิวตัน นาน 10 วินาที แต่ตู้ไม่ขยับ งานและกำลังเป็นเท่าใด?",["🧑","🗄️","r",null],["งาน 2,000 จูล กำลัง 200 วัตต์","งาน 0 จูล กำลัง 0 วัตต์","งาน 200 จูล กำลัง 20 วัตต์"],1,"s = 0 ดังนั้น W = 0 และ P = 0 ÷ 10 = 0 วัตต์"],
+[4,"น้องพลถือกล่อง 80 นิวตันเดินในแนวราบ 10 เมตร ใช้เวลา 5 วินาที งานจากแรงยกและกำลังเป็นเท่าใด?",["🚶","📦","u","r"],["งาน 800 จูล กำลัง 160 วัตต์","งาน 0 จูล กำลัง 0 วัตต์","งาน 80 จูล กำลัง 16 วัตต์"],1,"แรงยก ↑ ตั้งฉากกับการกระจัด → จึงไม่ทำงาน W = 0 และ P = 0"],
+[4,"ดึงรถเข็นไปข้างหน้าด้วยแรง 25 นิวตัน ในทิศเดียวกับการเคลื่อนที่ 8 เมตร ใช้เวลา 4 วินาที กำลังเท่าใด?",["🧑","🛒","r","r"],["200 วัตต์","50 วัตต์","6.25 วัตต์","800 วัตต์"],1,"W = 25 × 8 = 200 จูล, P = 200 ÷ 4 = 50 วัตต์"],
+[4,"ยกถังน้ำหนัก 120 นิวตันขึ้นสูง 5 เมตร ใช้เวลา 12 วินาที กำลังเท่าใด?",["🧑","🪣","u","u"],["600 วัตต์","50 วัตต์","10 วัตต์","1,440 วัตต์"],1,"W = 120 × 5 = 600 จูล, P = 600 ÷ 12 = 50 วัตต์"]
+];
+function scene([p,o,f,d]){
+ const V={r:[1,0],l:[-1,0],u:[0,-1],d:[0,1]};let a="";
+ if(f){const [x,y]=V[f],sx=170+x*(x?30:0),sy=(f=="u"?85:105);a+=`<line x1="${sx}" y1="${sy}" x2="${sx+x*60}" y2="${sy+y*52}" stroke="#ff5a5f" stroke-width="6" marker-end="url(#mr)"/><text x="${sx+x*60+(x?x*16:14)}" y="${sy+y*52+(y?0:-10)}" fill="#c4262b" font-size="22" font-weight="800" text-anchor="middle">F</text>`}
+ if(d){const h=d=="r"||d=="l";const [x1,y1,x2,y2]=h?(d=="r"?[130,157,240,157]:[240,157,130,157]):[262,128,262,50];
+  a+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1faa59" stroke-width="5" stroke-dasharray="9 6" marker-end="url(#mg)"/><text x="${h?185:280}" y="${h?149:92}" fill="#117a3c" font-size="22" font-weight="800">s</text>`}
+ else a+=`<text x="235" y="157" fill="#555" font-size="15">ไม่เคลื่อนที่ (s = 0)</text>`;
+ return `<svg viewBox="0 0 300 170"><defs><marker id="mr" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0,0L5,2.5L0,5z" fill="#ff5a5f"/></marker><marker id="mg" markerWidth="5" markerHeight="5" refX="3" refY="2.5" orient="auto"><path d="M0,0L5,2.5L0,5z" fill="#1faa59"/></marker></defs><rect y="132" width="300" height="38" fill="#7bd389" opacity=".5"/><line x1="0" y1="132" x2="300" y2="132" stroke="#3b9a50" stroke-width="3"/><text x="50" y="128" font-size="52" text-anchor="middle">${p}</text><text x="170" y="128" font-size="52" text-anchor="middle">${o}</text>${a}<text x="8" y="20" font-size="12" fill="#c4262b">F = แรง</text><text x="8" y="36" font-size="12" fill="#117a3c">s = การกระจัด</text></svg>`}
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+let P={},G={},tick;
+const fmt=s=>s.toFixed(1)+" วิ";
+function home(){clearInterval(tick);const sv=JSON.parse(localStorage.getItem("won_player")||"{}");
+ app.innerHTML=`<h1>WORK <b>or</b> NOT?</h1><div style="font-size:20px">ภารกิจพิชิตนักวิเคราะห์งาน ⚡</div>
+ <div class="card"><div>🔬 คุณคือนักวิเคราะห์วิทยาศาสตร์ ตัดสินให้ได้ว่าเกิด "งานทางฟิสิกส์" หรือไม่ ผ่าน 5 ด่าน 20 ข้อ</div></div>
+ <div class="card"><label>ชื่อ</label><input id="nm" maxlength="40" placeholder="ชื่อเล่นหรือชื่อจริง" value="${esc(sv.name||"")}"><label>เลขที่</label><input id="no" type="number" min="1" max="99" inputmode="numeric" placeholder="เลขที่ในห้อง" value="${esc(sv.no||"")}">
+ <div id="er" style="color:var(--yel)"></div><button class="btn" onclick="start()">🚀 เริ่มภารกิจ</button></div>
+ ${DB?"":`<div class="note">⚠️ ยังไม่ได้เชื่อมต่อฐานข้อมูล: คะแนนจะเก็บเฉพาะในเครื่องนี้ และยังไม่มี Leaderboard ส่วนกลาง</div>`}
+ <button class="btn alt" onclick="board()">🏆 Leaderboard</button><button class="btn ghost" onclick="teacher()">👩‍🏫 หน้าสำหรับครู</button>`}
+function start(){const name=$("#nm").value.trim(),no=parseInt($("#no").value);
+ if(!name||!(no>=1&&no<=99)){$("#er").textContent="กรุณากรอกชื่อและเลขที่ (1-99) ให้ครบ";return}
+ P={name,no};localStorage.setItem("won_player",JSON.stringify(P));
+ const ord=[];for(let l=0;l<5;l++)ord.push(...shuf(Q.filter(q=>q[0]==l)));
+ G={q:ord.map(q=>{const idx=shuf(q[3].map((_,i)=>i));return{l:q[0],t:q[1],s:q[2],c:idx.map(i=>q[3][i]),a:idx.indexOf(q[4]),e:q[5]}}),i:0,score:0,ok:0,bad:0,st:0,bs:0,spent:0};
+ ask()}
+function ask(){const q=G.q[G.i];G.lock=false;G.t0=Date.now();
+ app.innerHTML=`<div class="top"><span class="chip">⭐ <span id="sc">${G.score}</span></span><span class="chip">🔥 ต่อเนื่อง ${G.st}</span><span class="chip">⏱ <span id="tt">0.0</span></span></div>
+ <div class="bar"><i style="width:${G.i/G.q.length*100}%"></i></div>
+ <div class="top"><span class="lvl">${LV[q.l]}</span><span>ข้อ ${G.i+1}/${G.q.length}</span></div>
+ <div class="bar tbar" id="tb"><i id="tf" style="width:100%"></i></div>
+ <div class="card light">${scene(q.s)}<div class="q">${esc(q.t)}</div>
+ ${q.c.map((c,i)=>`<button class="ch" onclick="ans(${i})">${"กขคง"[i]}. ${esc(c)}</button>`).join("")}<div id="fb"></div></div>`;
+ clearInterval(tick);tick=setInterval(()=>{const e=(Date.now()-G.t0)/1000,l=Math.max(0,N_TIME-e);
+  $("#tf").style.width=l/N_TIME*100+"%";$("#tb").classList.toggle("low",l<10);$("#tt").textContent=fmt((G.spent+Date.now()-G.t0)/1000);if(l<=0)ans(-1)},100)}
+function ans(k){if(G.lock)return;G.lock=true;clearInterval(tick);const q=G.q[G.i],dt=Date.now()-G.t0;G.spent+=Math.min(dt,N_TIME*1000);
+ const right=k==q.a;let msg;
+ if(right){G.ok++;G.st++;G.bs=Math.max(G.bs,G.st);const tb=Math.round(50*Math.max(0,1-dt/(N_TIME*1000))),sb=G.st>=2?Math.min(20*(G.st-1),100):0;G.score+=100+tb+sb;
+  msg=`✅ ถูกต้อง! +100 คะแนน, โบนัสเวลา +${tb}${sb?`, โบนัสตอบถูกต่อเนื่อง +${sb} 🔥`:""}`}
+ else{G.bad++;G.st=0;msg=k<0?"⏰ หมดเวลา!":"❌ ยังไม่ถูกนะ"}
+ document.querySelectorAll(".ch").forEach((b,i)=>{b.disabled=true;if(i==q.a)b.classList.add("ok");else if(i==k)b.classList.add("no")});
+ $("#sc").textContent=G.score;
+ $("#fb").innerHTML=`<div class="fb ${right?"ok":"no"}"><b>${msg}</b><br>เฉลย: ${"กขคง"[q.a]}. ${esc(q.c[q.a])}<br>💡 ${esc(q.e)}</div><button class="btn" onclick="nextQ()">${G.i+1<G.q.length?"ข้อต่อไป ▶":"ดูผลสรุป 🏁"}</button>`;
+ $("#fb").scrollIntoView({behavior:"smooth",block:"nearest"})}
+function nextQ(){G.i++;G.i<G.q.length?ask():finish()}
+async function finish(){const tot=G.q.length,pct=Math.round(G.ok/tot*100),ts=Math.round(G.spent/100)/10;
+ const rec={student_no:P.no,name:P.name,score:G.score,correct:G.ok,wrong:G.bad,total:tot,percent:pct,time_sec:ts,best_streak:G.bs};
+ app.innerHTML=`<h1>🏁 สรุปผลภารกิจ</h1><div class="card"><div class="big">${G.score}</div><div style="text-align:center">คะแนนรวม</div></div>
+ <div class="grid"><div><b>${G.ok}</b>ถูก</div><div><b>${G.bad}</b>ผิด</div><div><b>${pct}%</b>ความถูกต้อง</div><div><b>${fmt(ts)}</b>เวลาที่ใช้ตอบ</div></div>
+ <div class="card" id="rk">กำลังบันทึกคะแนน…</div>
+ <button class="btn" onclick="start()">🔁 เล่นอีกครั้ง (สุ่มโจทย์ใหม่)</button><button class="btn alt" onclick="board()">🏆 Leaderboard</button><button class="btn ghost" onclick="home()">🏠 หน้าแรก</button>`;
+ if(!DB){const l=JSON.parse(localStorage.getItem("won_local")||"[]");l.push({...rec,created_at:new Date().toISOString()});localStorage.setItem("won_local",JSON.stringify(l));
+  $("#rk").innerHTML="💾 บันทึกในเครื่องนี้แล้ว แต่ยังไม่ได้เชื่อมต่อฐานข้อมูลส่วนกลาง จึงยังไม่มีอันดับ";return}
+ try{const r=await fetch(SUPABASE_URL+"/rest/v1/plays",{method:"POST",headers:{...H,Prefer:"return=minimal"},body:JSON.stringify(rec)});if(!r.ok)throw 0;
+  const b=best(await getAll()),k=key(rec),i=b.findIndex(x=>key(x)==k);
+  $("#rk").innerHTML=`✅ บันทึกแล้ว<br>🏅 อันดับของคุณ (คะแนนดีที่สุด): <b style="color:var(--yel);font-size:24px">#${i+1}</b> จาก ${b.length} คน`}
+ catch(e){$("#rk").innerHTML="⚠️ บันทึกคะแนนไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตหรือการตั้งค่าฐานข้อมูล"}}
+const key=x=>x.student_no+"|"+x.name.trim().toLowerCase();
+async function getAll(){const r=await fetch(SUPABASE_URL+"/rest/v1/plays?select=*&order=score.desc,time_sec.asc&limit=2000",{headers:H});if(!r.ok)throw 0;return r.json()}
+function best(a){a=a.slice().sort((x,y)=>y.score-x.score||x.time_sec-y.time_sec);const s=new Set();return a.filter(x=>{const k=key(x);if(s.has(k))return false;s.add(k);return true})}
+async function board(){clearInterval(tick);
+ app.innerHTML=`<h1>🏆 Leaderboard</h1><div class="card light" id="lb">${DB?"กำลังโหลด…":"ยังไม่ได้เชื่อมต่อฐานข้อมูล จึงไม่มีข้อมูลอันดับส่วนกลางให้แสดง"}</div><button class="btn" onclick="home()">🏠 กลับหน้าแรก</button>`;
+ if(!DB)return;
+ try{const b=best(await getAll()).slice(0,10),k=P.name?key({student_no:P.no,name:P.name}):"";
+  $("#lb").innerHTML=b.length?`<div class="tw"><table><tr><th>#</th><th>ผู้เล่น</th><th>คะแนน</th><th>เวลา</th></tr>${b.map((x,i)=>`<tr class="${key(x)==k?"me":""}"><td>${["🥇","🥈","🥉"][i]||i+1}</td><td>${esc(x.name)} (เลขที่ ${x.student_no})</td><td><b>${x.score}</b></td><td>${fmt(x.time_sec)}</td></tr>`).join("")}</table></div><div style="font-size:14px;margin-top:6px">จัดอันดับจากคะแนนดีที่สุดของแต่ละคน ถ้าเท่ากันดูเวลาน้อยกว่า</div>`:"ยังไม่มีใครเล่น เป็นคนแรกเลย!"}
+ catch(e){$("#lb").textContent="โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตหรือการตั้งค่า"}}
+const SQL=`create table plays (
+  id bigint generated always as identity primary key,
+  created_at timestamptz default now(),
+  student_no int not null, name text not null,
+  score int not null, correct int not null, wrong int not null,
+  total int not null, percent int not null,
+  time_sec numeric not null, best_streak int default 0);
+alter table plays enable row level security;
+create policy "anon insert" on plays for insert to anon with check (true);
+create policy "anon read" on plays for select to anon using (true);`;
+function teacher(){app.innerHTML=`<h1>👩‍🏫 หน้าสำหรับครู</h1><div class="card"><label>รหัสครู</label><input id="pin" type="password" placeholder="กรอกรหัส"><div id="er" style="color:var(--yel)"></div><button class="btn" onclick="tLogin()">เข้าสู่ระบบ</button></div><button class="btn ghost" onclick="home()">🏠 กลับหน้าแรก</button>`}
+let rows=[];
+async function tLogin(){if($("#pin").value!==TEACHER_PIN){$("#er").textContent="รหัสไม่ถูกต้อง";return}
+ app.innerHTML=`<h1>📋 ข้อมูลนักเรียน</h1><div class="card light" id="tc">${DB?"กำลังโหลด…":""}</div>
+ <div class="card"><b>วิธีตั้งค่าฐานข้อมูล (Supabase)</b><ol style="font-size:16px;padding-left:20px"><li>สร้างโปรเจกต์ที่ supabase.com</li><li>ไปที่ SQL Editor แล้วรันคำสั่งด้านล่าง</li><li>ไปที่ Project Settings › API คัดลอก Project URL และ anon public key</li><li>เปิดไฟล์นี้ด้วยโปรแกรมแก้ไขข้อความ ใส่ค่าที่ SUPABASE_URL และ SUPABASE_KEY (และเปลี่ยน TEACHER_PIN) แล้วบันทึก</li><li>นำไฟล์ไปเผยแพร่ เช่น Netlify, Vercel, GitHub Pages แล้วส่งลิงก์ให้นักเรียน</li></ol><pre>${esc(SQL)}</pre></div>
+ <button class="btn ghost" onclick="home()">🏠 กลับหน้าแรก</button>`;
+ if(!DB){$("#tc").innerHTML="ยังไม่ได้เชื่อมต่อฐานข้อมูล จึงยังไม่มีข้อมูลนักเรียนทั้งห้องให้แสดง ทำตามขั้นตอนด้านล่างเพื่อเริ่มใช้งาน";return}
+ try{rows=await getAll();rows.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));drawT("")}catch(e){$("#tc").textContent="โหลดข้อมูลไม่สำเร็จ ตรวจสอบการตั้งค่า"}}
+function drawT(f){const r=rows.filter(x=>(x.name+" "+x.student_no).toLowerCase().includes(f.toLowerCase())),pl=new Set(rows.map(key)).size;
+ $("#tc").innerHTML=`<div>ผู้เล่น ${pl} คน · เล่นทั้งหมด ${rows.length} ครั้ง</div><input id="sf" placeholder="ค้นหาชื่อหรือเลขที่" value="${esc(f)}" oninput="drawT(this.value);$('#sf').focus()"><button class="btn alt" style="font-size:16px;padding:9px" onclick="csv()">⬇️ ดาวน์โหลด CSV</button><div class="tw"><table><tr><th>วันที่</th><th>เลขที่</th><th>ชื่อ</th><th>คะแนน</th><th>ถูก/ทั้งหมด</th><th>%</th><th>เวลา</th></tr>${r.map(x=>`<tr><td>${new Date(x.created_at).toLocaleString("th-TH",{dateStyle:"short",timeStyle:"short"})}</td><td>${x.student_no}</td><td>${esc(x.name)}</td><td>${x.score}</td><td>${x.correct}/${x.total}</td><td>${x.percent}</td><td>${x.time_sec}</td></tr>`).join("")}</table></div>`;
+ const e=$("#sf");e.setSelectionRange(f.length,f.length)}
+function csv(){const h=["created_at","student_no","name","score","correct","wrong","total","percent","time_sec","best_streak"];
+ const t="\ufeff"+[h.join(",")].concat(rows.map(r=>h.map(k=>'"'+String(r[k]).replace(/"/g,'""')+'"').join(","))).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download="work-or-not-scores.csv";a.click()}
+home();
+</script></body></html>
